@@ -17,7 +17,7 @@ def sn_load_file(path):
     parser.add_argument('--step',
                         type=int,
                         default=table['step (s)'])
-    parser.add_argument('--duration', type=int, default=table['Duration (s)'])
+    parser.add_argument('--duration', type=int, default=(table['Duration (s)'] if 'Duration (s)' in table else 0))
     parser.add_argument('--sat_bandwidth',
                         type=int,
                         default=table['satellite link bandwidth ("X" Gbps)'])
@@ -41,13 +41,15 @@ def sn_load_file(path):
     # TODO: parser.add_argument('--user_num', type=int, default=0)
     sn_args = parser.parse_args()
     sn_args.__setattr__('machine_lst', table['Machines'])
-    shell_lst = [{
-        'altitude': shell['Altitude (km)'],
-        'inclination': shell['Inclination'],
-        'phase_shift': shell['Phase shift'],
-        'orbit': shell['Orbits'],
-        'sat': shell['Satellites per orbit'],
-        } for shell in table["Shells"]]
+    shell_lst = table['Shells']
+    for shell in shell_lst:
+        # for compatibility
+        update_keys = [
+            ('Altitude (km)', 'altitude'), ('Inclination', 'inclination'),
+            ('Phase shift', 'phase_shift'), ('Orbits', 'orbit'), ('Satellites per orbit', 'sat')]
+        for key, new_key in update_keys:
+            if key in shell:
+                shell[new_key] = shell[key]
     sn_args.__setattr__('shell_lst', shell_lst)
     return sn_args
 

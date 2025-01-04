@@ -15,14 +15,19 @@ if __name__ == "__main__":
 
     GS_lat_long = [[50.110924, 8.682127], [46.635700, 14.311817]
                    ]  # latitude and longitude of frankfurt and  Austria
-    configuration_file_path = "./config.json"
+    configuration_file_path = "./manual.json"
     hello_interval = 5  # hello_interval(s) in OSPF. 1-200 are supported.
 
     print('Start StarryNet.')
     sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval)
     
-    node1 = 'SH1O25S14'
-    node2 = 'SH1O25S15'
+    sn.create_nodes()
+    sn.create_links()
+  
+    exit(0)
+
+    node1 = 'SH1O2S4'
+    node2 = 'SH1O2S5'
     time_index = 2
     # LLA of a node at a certain time
     LLA = sn.get_position(node1, time_index)
@@ -37,12 +42,9 @@ if __name__ == "__main__":
     print(f'\n{node1} neighbors: {neighbors}')
     
     # GS connected to the node at a certain time
-    GSes = sn.get_GSes(node1, time_index)
-    print(f"\n{node1} GSes: {GSes}")
+    GSes = sn.get_GSes('SH1O2S2', time_index)
+    print(f"\nSH1O2S2 GSes: {GSes}")
 
-    sn.create_nodes()
-    sn.create_links()
-  
     time_index = 2
     sn.get_utility(time_index)  # CPU and memory useage
 
@@ -73,7 +75,7 @@ if __name__ == "__main__":
     # sn.run_routing_daemon()
     
     # run OSPF daemon on selected nodes
-    sn.run_routing_deamon(node_lst=[
+    sn.run_routing_daemon(node_lst=[
       'GS1', 'SH1O25S14', 'SH1O26S14', 'SH1O27S14', 'SH1O27S13', 'GS2'])
 
     sn.check_routing_table('GS2', 4)

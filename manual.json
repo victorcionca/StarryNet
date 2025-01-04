@@ -1,0 +1,83 @@
+{
+    "Name": "starlink",
+    "Satellite link": "Arbitrary",
+    "Shells": [
+        {
+            "timeslots": [
+                {
+                    "position": [
+                        {
+                            "latitude": 56.5,
+                            "longitude": -20.1,
+                            "altitude": 550
+                        },
+                        {
+                            "latitude": 57.5,
+                            "longitude": -23.1,
+                            "altitude": 545
+                        }
+                    ],
+                    "links":[
+                        {
+                            "sat1":0,
+                            "sat2":1
+                        }
+                    ]
+                },
+                {
+                    "position": [
+                        {
+                            "latitude": 56.5,
+                            "longitude": -20.1,
+                            "altitude": 550
+                        },
+                        {
+                            "latitude": 57.5,
+                            "longitude": -23.1,
+                            "altitude": 545
+                        }
+                    ],
+                    "links":[]
+                },
+                {
+                    "position": [
+                        {
+                            "latitude": 56.5,
+                            "longitude": -20.1,
+                            "altitude": 550
+                        },
+                        {
+                            "latitude": 57.5,
+                            "longitude": -23.1,
+                            "altitude": 545
+                        }
+                    ],
+                    "links":[
+                        {
+                            "sat1":0,
+                            "sat2":1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "step (s)": 1,
+    "satellite link bandwidth (\"X\" Gbps)": 5,
+    "sat-ground bandwidth (\"X\" Gbps)": 5,
+    "satellite link loss (\"X\"% )": 0,
+    "sat-ground loss (\"X\"% )": 1,
+    "antenna number": 1,
+    "antenna elevation angle": 25,
+    "IP version": "IPv4",
+    "Link policy": "LeastDelay",
+    "Handover policy": "instant handover",
+    "Machines": [
+        {
+            "IP": "127.0.0.1",
+            "port": 22,
+            "username": "root",
+            "password": "123456"
+        }
+    ]
+}
