@@ -56,21 +56,8 @@ protocol ospf{
 }
 """
 
-def _sat_name(shell_id, orbit_id, sat_id):
-    return f'SH{shell_id+1}O{orbit_id+1}S{sat_id+1}'
-
-def _sat2idx(sat_name):
-    idx1 = sat_name.find('O')
-    idx2 = sat_name.find('S', idx1)
-    shell_id = int(sat_name[2:idx1])-1
-    oid, sid = int(sat_name[idx1+1:idx2])-1, int(sat_name[idx2+1:])-1
-    return shell_id, oid, sid
-
 def _gs2idx(gs_name):
-    return int(node[2:])-1
-
-def _gs_name(gid):
-    return f'GS{gid+1}'
+    return int(gs_name[2:])-1
 
 class RemoteMachine:
     
@@ -480,8 +467,6 @@ class StarryNet():
     def get_GSes(self, sat, time_index):
         if not sat.startswith('SH'):
             raise RuntimeError('Not a Satellite')
-        shell_id, oid, sid = _sat2idx(sat)
-        shell = self.shell_lst[shell_id]
 
         gsls_dict = load_links_dict(os.path.join(
             self.local_dir,
@@ -594,8 +579,7 @@ class StarryNet():
     def start_emulation(self):
         self.events.sort(key=lambda x:x[0], reverse=True)
 
-        if not hasattr(self, 'node_map'):
-            self._load_node_map()
+        nodes = self.node_map()
 
         self.ping_threads = []
         self.iperf_threads = []

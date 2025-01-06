@@ -24,10 +24,8 @@ if __name__ == "__main__":
     sn.create_nodes()
     sn.create_links()
   
-    exit(0)
-
-    node1 = 'SH1O2S4'
-    node2 = 'SH1O2S5'
+    node1 = 'SH1SAT1'
+    node2 = 'SH1SAT2'
     time_index = 2
     # LLA of a node at a certain time
     LLA = sn.get_position(node1, time_index)
@@ -42,8 +40,8 @@ if __name__ == "__main__":
     print(f'\n{node1} neighbors: {neighbors}')
     
     # GS connected to the node at a certain time
-    GSes = sn.get_GSes('SH1O2S2', time_index)
-    print(f"\nSH1O2S2 GSes: {GSes}")
+    GSes = sn.get_GSes(node1, time_index)
+    print(f"\n{node1} GSes: {GSes}")
 
     time_index = 2
     sn.get_utility(time_index)  # CPU and memory useage
@@ -52,9 +50,9 @@ if __name__ == "__main__":
     IP_dict = sn.get_IP(node1)
     print(f'\n{node1} IP addresses: {IP_dict}')
 
-    sat = 'SH1O1S1'
+    sat = 'SH1SAT2'
     des = 'GS2'
-    next_hop_sat = 'SH1O1S2'
+    next_hop_sat = 'SH1SAT1'
     time_index = 20
     # set the next hop at a certain time. Sat and NextHopSat are neighbors.
     sn.set_next_hop(sat, des, next_hop_sat, time_index)
@@ -63,8 +61,8 @@ if __name__ == "__main__":
     # routing table of a node at a certain time. The output file will be written at the working directory.
     sn.check_routing_table(sat, time_index)
 
-    node1 = 'SH1O5S6'
-    node2 = 'SH1O6S6'
+    node1 = 'SH1SAT1'
+    node2 = 'SH1SAT2'
     time_index = 4
     # ping msg of two nodes at a certain time. The output file will be written at the working directory.
     sn.set_ping(node1, node2, time_index)
@@ -76,7 +74,7 @@ if __name__ == "__main__":
     
     # run OSPF daemon on selected nodes
     sn.run_routing_daemon(node_lst=[
-      'GS1', 'SH1O25S14', 'SH1O26S14', 'SH1O27S14', 'SH1O27S13', 'GS2'])
+      'GS1', 'SH1SAT1', 'SH1SAT2', 'GS2'])
 
     sn.check_routing_table('GS2', 4)
 
@@ -92,13 +90,8 @@ if __name__ == "__main__":
     sn.set_recovery(time_index)
 
     sn.check_routing_table('GS1', 25)
-    
-    for time_index in range(35, 80):
-        node1 = 'SH1O9S10'
-        node2 = 'SH1O10S10'
-        # ping msg of two nodes at a certain time. The output file will be written at the working directory.
-        sn.set_ping(node1, node2, time_index)
 
     sn.start_emulation()
+
     if input('clear environment?[y/n]').strip().lower()[:1] == 'y':
         sn.clean()
