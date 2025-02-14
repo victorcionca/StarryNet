@@ -117,11 +117,12 @@ def _del_link(name1, name2):
     os.close(fd)
     subprocess.check_call(('ip', 'link', 'del', n1_n2))
 
-def _init_if(name, if_name, addr, delay, bw, loss):
+def _init_if(name, if_name, addr, addr6, delay, bw, loss):
     fd = os.open('/run/netns/' + name, os.O_RDONLY)
     libc.setns(fd, CLONE_NEWNET)
     os.close(fd)
     subprocess.check_call(('ip', 'addr', 'add', addr, 'dev', if_name))
+    subprocess.check_call(('ip', 'addr', 'add', addr6, 'dev', if_name))
     subprocess.check_call(
         ('tc', 'qdisc', 'add', 'dev', if_name, 'root',
          'netem', 'delay', delay+'ms', 'loss', loss+'%', 'rate', bw+'Gbit')
@@ -149,26 +150,26 @@ def _update_link_local(name1, name2, delay, bw, loss):
     n1_n2 = f"{name2}"
     _update_if(name1, n1_n2, delay, bw, loss)
 
-def _add_link_intra_machine(idx, name1, name2, prefix, delay, bw, loss):
-    n1_n2 = f"{name2}"
-    n2_n1 = f"{name1}"
+def _add_link_intra_machine(idx, name1, name2, prefix4, prefix6, delay, bw, loss):
+    n1_n2 = name2
+    n2_n1 = name1
     libc.setns(main_net_fd, CLONE_NEWNET)
     subprocess.check_call(
         ('ip', 'link', 'add', n1_n2, 'netns', name1,
          'type', 'veth', 'peer', n2_n1, 'netns', name2)
     )
-    _init_if(name1, n1_n2, prefix+'.10/24', delay, bw, loss)
-    _init_if(name2, n2_n1, prefix+'.40/24', delay, bw, loss)
+    _init_if(name1, n1_n2, prefix4+'.10/24', prefix6 + '::10/48', delay, bw, loss)
+    _init_if(name2, n2_n1, prefix4+'.40/24', prefix6 + '::40/48', delay, bw, loss)
     
-def _add_link_inter_machine(idx, name1, name2, remote_ip, prefix, delay, bw, loss):
-    n1_n2 = f"{name2}"
-    n2_n1 = f"{name1}"
+def _add_link_inter_machine(idx, name1, name2, remote_ip, prefix4, prefix6, delay, bw, loss):
+    n1_n2 = name2
+    libc.setns(main_net_fd, CLONE_NEWNET)
     subprocess.check_call(
-        ('ip', 'link', 'add', n1_n2, 'type', 'vxlan',
-         'id', str(idx), 'remote', remote_ip, 'dstport', VXLAN_PORT)
+        ('ip', 'link', 'add', n1_n2, 'netns', name1,
+         'type', 'vxlan', 'id', str(idx), 'remote', remote_ip, 'dstport', VXLAN_PORT)
     )
-    _init_if(name1, n1_n2, prefix+'.10/24', delay, bw, loss)
-    _init_if(name2, n2_n1, prefix+'.40/24', delay, bw, loss)
+    suffix6 = '::10/48' if name1 < name2 else '::40/48'
+    _init_if(name1, n1_n2, prefix4+'.10/24', prefix6 + suffix6, delay, bw, loss)
 
 def sn_init_nodes(dir, sat_mid_dict_shell, gs_mid_dict):
     def _load_netns(pid, name):
@@ -256,18 +257,21 @@ def sn_update_network(
                 if mid_dict[isl_sat] == machine_id:
                     _add_link_intra_machine(
                         idx, sat_name, isl_sat,
-                        f'10.{idx >> 8}.{idx & 0xFF}', delay, isl_bw, isl_loss
+                        f'10.{idx >> 8}.{idx & 0xFF}', f'2001:{idx >> 8}:{idx & 0xFF}',
+                        delay, isl_bw, isl_loss
                     )
                 else:
                     _add_link_inter_machine(
                         idx, sat_name, isl_sat, ip_lst[mid_dict[isl_sat]],
-                        f'10.{idx >> 8}.{idx & 0xFF}', delay, isl_bw, isl_loss
+                        f'10.{idx >> 8}.{idx & 0xFF}', f'2001:{idx >> 8}:{idx & 0xFF}',
+                        delay, isl_bw, isl_loss
                     )
             elif mid_dict[isl_sat] == machine_id:
                 add_cnt += 1
                 _add_link_inter_machine(
                     idx, isl_sat, sat_name, ip_lst[mid_dict[sat_name]],
-                    f'10.{idx >> 8}.{idx & 0xFF}', delay, isl_bw, isl_loss
+                    f'10.{idx >> 8}.{idx & 0xFF}', f'2001:{idx >> 8}:{idx & 0xFF}',
+                    delay, isl_bw, isl_loss
                 )
         print(f"[{machine_id}] Shell {shell_id}:",
               f"{del_cnt} deleted, {update_cnt} updated, {add_cnt} added.")
