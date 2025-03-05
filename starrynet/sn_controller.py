@@ -1,8 +1,12 @@
 import time
+import datetime
 import threading
 import math
 import json
 import requests
+import subprocess
+import gzip
+import io
 
 from starrynet.sn_utils import *
 
@@ -23,13 +27,17 @@ class Remote:
         self.dir = sn_remote_cmd(self.ssh, 'echo ~/SN')
         sn_remote_cmd(self.ssh, 'mkdir ' + self.dir)
 
+        # self.sftp.put(
+        #     os.path.join(os.path.dirname(__file__), 'sn_remote.py'),
+        #     self.dir + '/sn_remote.py'
+        # )
+        # self.sftp.put(
+        #     os.path.join(os.path.dirname(__file__), 'pyctr.c'),
+        #     self.dir + '/pyctr.c'
+        # )
         self.sftp.put(
-            os.path.join(os.path.dirname(__file__), 'sn_remote.py'),
-            self.dir + '/sn_remote.py'
-        )
-        self.sftp.put(
-            os.path.join(os.path.dirname(__file__), 'pyctr.c'),
-            self.dir + '/pyctr.c'
+            os.path.join(os.path.dirname(__file__), 'pyctr.so'),
+            self.dir + '/pyctr.so'
         )
         self.sftp.put(
             ASSIGN_FILENAME,
@@ -41,11 +49,31 @@ class Remote:
         )
 
     def update_network(self, del_links, add_links, update_links):
+        t1 = time.perf_counter()
         self.sftp.put(LINK_FILENAME, self.dir + '/' + LINK_FILENAME)
+        t2 = time.perf_counter()
         sn_remote_wait_output(
             self.ssh,
             f"python3 {self.dir}/sn_remote.py networks {self.id} {self.dir} "
         )
+        t3 = time.perf_counter()
+        print(f'[{self.id}]', t1, t2, t3)
+    
+    def exec(self, node, cmd):
+        def generate(all_cmd):
+            try:
+                stdin, stdout, stderr = self.ssh.exec_command(all_cmd)
+                # 实时读取命令输出
+                for line in stdout:
+                    yield line
+                
+                for line in stderr:
+                    yield line
+            
+            except Exception as e:
+                yield f"error: {str(e)}\n"
+        return generate(f'cd {self.dir} && python3 sn_remote.py exec {node} {cmd}')
+        
 
 class TopoSync():
 
@@ -70,9 +98,16 @@ class TopoSync():
             
             print('Time: ', t, '\n')
             last_t = t
-            res = requests.get(self.api_url)
-                    #    + f'?time={t}&constellation={self.constellation}&timestep={self.time_step}')
-            node_info = json.loads(res.text)
+            url = (self.api_url
+                + f'?startTime={datetime.datetime.fromtimestamp(t).isoformat()}'
+                + f'&constellation={self.constellation}')
+            print(url)
+            res = requests.get(url)
+            if res.status_code != 200:
+                print(f'<{res.status_code}> Failed to fetch nodeInfo, skip.')
+                continue
+            with gzip.GzipFile(fileobj=io.BytesIO(res.content), mode='rb') as f:
+                node_info = json.load(f)
             new_links, del_links, add_links, update_links = self._parse(node_info)
 
             with open(LINK_FILENAME, 'w') as f:
@@ -136,6 +171,10 @@ class TopoSync():
                     continue
                 self.node_mid[src_id] = self.node_mid[dst_id]
             
+            for j in range(self.sat_nr, len(self.node_mid)):
+                if self.node_mid[j] is None:
+                    self.node_mid[j] = random.randint(0, len(self.machine_lst)-1)
+
             with open(ASSIGN_FILENAME, 'w') as f:
                 json.dump(
                     {
@@ -145,8 +184,16 @@ class TopoSync():
                     },
                     f
                 )
+            
+            pyctr_dir = os.path.dirname(__file__)
+            subprocess.check_call(
+                "cd " + pyctr_dir + " && "
+                "gcc $(python3-config --cflags --ldflags)"
+                "-shared -fPIC -O2 pyctr.c -o pyctr.so",
+                shell=True
+            )
 
-            self.remote_lst = []            
+            self.remote_lst = []
             for mid, machine in enumerate(self.machine_lst):
                 self.remote_lst.append(Remote(
                     mid,
@@ -188,8 +235,6 @@ class TopoSync():
         self.node_name = []
         self.node_lla = []
         self.node_mid = [None] * (len(node_info['sat']) + len(node_info['ground']))
-
-        sat_per_machine = (len(node_info['sat']) + len(self.machine_lst) - 1) // len(self.machine_lst)
         
         for idx, sat in enumerate(node_info['sat']):
             if idx != sat['id']:
@@ -197,9 +242,8 @@ class TopoSync():
             self.node_name.append(f'SAT{idx}')
             self.node_lla.append((float(sat['lat']), float(sat['lon']), float(sat['alt'])))
         
-        for i in range(len(self.machine_lst)):
-            for j in range(i * sat_per_machine, min((i+1) * sat_per_machine, len(self.node_name))):
-                self.node_mid[j] = i            
+        for i in range(len(self.node_name)):
+            self.node_mid[i] = random.randint(0, len(self.machine_lst)-1)        
         
         self.sat_nr = len(self.node_name)
 
@@ -208,3 +252,7 @@ class TopoSync():
                 raise RuntimeError("'id' of gs is not incremented")
             self.node_name.append(f'GS{idx}')
             self.node_lla.append((float(gs['lat']), float(gs['lon']), float(gs['alt'])))
+
+    def exec(self, node, cmd):
+        idx = self.node_name.index(node)       
+        return self.remote_lst[self.node_mid[idx]].exec(node, cmd)

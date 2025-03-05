@@ -12,17 +12,11 @@ PID_FILENAME = 'container_pid.txt'
 DAMAGE_FILENAME = 'damage_list.txt'
 
 NOT_ASSIGNED = 'NA'
-VXLAN_PORT = 4789
+VXLAN_PORT = '4789'
 # FIXME
 CLONE_NEWNET = 0x40000000
 libc = ctypes.CDLL(None)
 main_net_fd = os.open('/proc/self/ns/net', os.O_RDONLY)
-
-def _sat_name(shell_id, orbit_id, sat_id):
-    return f'SH{shell_id+1}O{orbit_id+1}S{sat_id+1}'
-
-def _gs_name(gid):
-    return f'GS{gid+1}'
 
 def _pid_map(pid_path, pop = False):
     global _pid_map_cache
@@ -54,54 +48,6 @@ def _get_params(path):
         ip_lst = obj['ip']
     return node_name, node_mid, ip_lst
 
-def _parse_isls(path):
-    del_lst, update_lst, add_lst = [], [], []
-    f = open(path, 'r')
-    for line in f:
-        toks = line.strip().split('|')
-        sat_name = toks[0]
-        if len(toks[1]) > 0:
-            for isl_sat in toks[1].split(' '):
-                del_lst.append((sat_name, isl_sat))
-        if len(toks[2]) > 0:
-            for isl_sat in toks[2].split(' '):
-                sat_delay = isl_sat.split(',')
-                update_lst.append((sat_name, sat_delay[0], sat_delay[1]))
-        if len(toks[3]) > 0:
-            for isl_sat in toks[3].split(' '):
-                idx_sat_delay = isl_sat.split(',')
-                add_lst.append((sat_name, idx_sat_delay[0], idx_sat_delay[1], int(idx_sat_delay[2])))
-    f.close()
-    return del_lst, update_lst, add_lst
-
-def _parse_gsls(path):
-    del_lst, update_lst, add_lst = [], [], []
-    f = open(path, 'r')
-    for gid, line in enumerate(f):
-        if len(line) == 0 or line.isspace():
-            continue
-        toks = line.strip().split('|')
-        if len(toks[1]) > 0:
-            for isl in toks[1].split(' '):
-                i_s_o_s_d = isl.split(',')
-                idx, shell_id = int(i_s_o_s_d[0]), int(i_s_o_s_d[1])
-                oid, sid = int(i_s_o_s_d[2]), int(i_s_o_s_d[3])
-                del_lst.append((idx, gid, shell_id, oid, sid, i_s_o_s_d[4]))
-        if len(toks[2]) > 0:
-            for isl in toks[2].split(' '):
-                i_s_o_s_d = isl.split(',')
-                idx, shell_id = int(i_s_o_s_d[0]), int(i_s_o_s_d[1])
-                oid, sid = int(i_s_o_s_d[2]), int(i_s_o_s_d[3])
-                update_lst.append((idx, gid, shell_id, oid, sid, i_s_o_s_d[4]))
-        if len(toks[3]) > 0:
-            for isl in toks[3].split(' '):
-                i_s_o_s_d = isl.split(',')
-                idx, shell_id = int(i_s_o_s_d[0]), int(i_s_o_s_d[1])
-                oid, sid = int(i_s_o_s_d[2]), int(i_s_o_s_d[3])
-                add_lst.append((idx, gid, shell_id, oid, sid, i_s_o_s_d[4]))
-    f.close()
-    return del_lst, update_lst, add_lst
-
 # name1 in local machine
 def _del_link(name1, name2):
     n1_n2 = f"{name2}"
@@ -131,17 +77,6 @@ def _update_if(name, if_name, delay, bw, loss):
         ('tc', 'qdisc', 'change', 'dev', if_name, 'root',
         'netem', 'delay', str(delay) + 'ms', 'rate', bw + 'Gbit', 'loss', update_loss + '%')
     )
-
-def _update_link_intra_machine(name1, name2, delay, bw, loss):
-    n1_n2 = f"{name2}"
-    n2_n1 = f"{name1}"
-    _update_if(name1, n1_n2, delay, bw, loss)
-    _update_if(name2, n2_n1, delay, bw, loss)
-
-# name1 in local machine
-def _update_link_local(name1, name2, delay, bw, loss):
-    n1_n2 = f"{name2}"
-    _update_if(name1, n1_n2, delay, bw, loss)
 
 def _add_link_intra_machine(idx, name1, name2, prefix4, prefix6, delay, bw, loss):
     n1_n2 = name2
@@ -515,7 +450,8 @@ if __name__ == '__main__':
     elif cmd == 'networks':
         # lp = LineProfiler()
         # sn_update_network = lp(sn_update_network)
-        # lp.add_function(_update_link_intra_machine)
+        # lp.add_function(_add_link_intra_machine)
+        # lp.add_function(_add_link_inter_machine)
         sn_update_network(
             workdir, node_name, node_mid, ip_lst,
             '1', '0', '1', '0'
