@@ -273,7 +273,7 @@ def _write_link_files(dir, topo_t_shell, gsls_t, GS_lat_long):
             f_state.close()
             f_update.close()
     # GSL
-    gsl_dir = os.path.join(dir, 'GS-' + str(len(GS_lat_long)), 'gsl')
+    gsl_dir = os.path.join(dir, 'GS', 'gsl')
     os.makedirs(gsl_dir, exist_ok=True)
     for file in glob.glob(os.path.join(gsl_dir, '*.txt')):
         os.remove(file)

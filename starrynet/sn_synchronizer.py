@@ -255,7 +255,7 @@ class StarryNet():
             os.path.abspath(configuration_file_path))
         self.experiment_name = sn_args.cons_name\
             +'-'+ sn_args.link_style +'-'+ sn_args.link_policy
-        self.gs_dirname = 'GS-' + str(len(self.gs_lat_long))
+        self.gs_dirname = 'GS'
         for shell_id, shell in enumerate(self.shell_lst):
             shell['name'] = f"shell{shell_id}"
 
@@ -266,8 +266,7 @@ class StarryNet():
             self.local_dir, self.duration, self.step, self.shell_lst, self.link_style,
             self.gs_lat_long, self.antenna_number, self.elevation, self.link_policy
         )
-        (self.remote_lst, self.sat_mid_dict,
-         self.gs_mid_dict) = self._assign_remote(sat_names_shell, sn_args.machine_lst)
+        self.remote_lst, self.node_mid_dict = self._assign_remote(sat_names_shell, sn_args.machine_lst)
 
         self.events = []
     
@@ -294,7 +293,7 @@ class StarryNet():
             remainder = len(sat_names_shell) % len(machine_lst)
 
             shell_id = 0
-            sat_mid_dict_shell = []
+            node_mid_dict = {}
             assigned_shell_lst = []
             for i, remote in enumerate(machine_lst):
                 shell_num = shell_per_machine
@@ -306,13 +305,10 @@ class StarryNet():
                 ]
                 # all satellites of a shell assigned to a single machine
                 for shell_name, sat_names in assigned_shells:
-                    sat_mid_dict = {}
                     for sat_name in sat_names:
-                        sat_mid_dict[sat_name] = i
-                    sat_mid_dict_shell.append(sat_mid_dict)
+                        node_mid_dict[sat_name] = i
                 assigned_shell_lst.append(assigned_shells)
                 shell_id += shell_num
-            gs_mid_dict = {}
             # TODO: better ground station assign
             with open(os.path.join(self.local_dir, self.gs_dirname,'gsl','0.txt'))as f:
                 for line in f:
@@ -323,14 +319,14 @@ class StarryNet():
                     gs_name = toks[0]
                     add_lst = toks[3]
                     if len(add_lst) == 0:
-                        gs_mid_dict[gs_name] = 0
+                        node_mid_dict[gs_name] = 0
                         continue
                     gsl = add_lst.split(' ')[0].split(',')
-                    gs_mid_dict[gs_name] = sat_mid_dict[gsl[0]]
+                    node_mid_dict[gs_name] = node_mid_dict[gsl[0]]
             ip_lst = [remote['IP'] for remote in machine_lst]
             assign_obj = {
-                'sat_mid_shell': sat_mid_dict_shell,
-                'gs_mid': gs_mid_dict,
+                'shell_num': len(self.shell_lst),
+                'node_mid_dict': node_mid_dict,
                 'ip': ip_lst,
             }
             with open(os.path.join(self.local_dir, ASSIGN_FILENAME), 'w') as f:
@@ -347,10 +343,10 @@ class StarryNet():
                 assigned_shell_lst[i],
                 self.experiment_name,
                 self.local_dir,
-                self.gs_dirname if i in gs_mid_dict.values() else None
+                self.gs_dirname
                 )
             )
-        return remote_lst, sat_mid_dict, gs_mid_dict
+        return remote_lst, node_mid_dict
 
     def create_nodes(self):
         print('Initializing nodes ...')

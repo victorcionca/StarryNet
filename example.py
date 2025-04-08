@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     GS_lat_long = [[50.110924, 8.682127], [46.635700, 14.311817]
                    ]  # latitude and longitude of frankfurt and  Austria
-    configuration_file_path = "./manual.json"
+    configuration_file_path = "./config.json"
     hello_interval = 5  # hello_interval(s) in OSPF. 1-200 are supported.
 
     print('Start StarryNet.')
@@ -24,8 +24,8 @@ if __name__ == "__main__":
     sn.create_nodes()
     sn.create_links()
   
-    node1 = 'SH1SAT1'
-    node2 = 'SH1SAT2'
+    node1 = 'SH1O1S1'
+    node2 = 'SH1O1S2'
     time_index = 2
     # LLA of a node at a certain time
     LLA = sn.get_position(node1, time_index)
@@ -43,53 +43,52 @@ if __name__ == "__main__":
     GSes = sn.get_GSes(node1, time_index)
     print(f"\n{node1} GSes: {GSes}")
 
-    time_index = 2
+    time_index = 1
     sn.get_utility(time_index)  # CPU and memory useage
 
     # IP dict of a node
     IP_dict = sn.get_IP(node1)
     print(f'\n{node1} IP addresses: {IP_dict}')
 
-    sat = 'SH1SAT2'
-    des = 'GS2'
-    next_hop_sat = 'SH1SAT1'
-    time_index = 20
-    # set the next hop at a certain time. Sat and NextHopSat are neighbors.
-    sn.set_next_hop(sat, des, next_hop_sat, time_index)
+    # run OSPF daemon on all nodes
+    # sn.run_routing_daemon()
+    
+    # run OSPF daemon on selected nodes
+    # sn.run_routing_daemon(node_lst=['GS1', 'SH1O2S2', 'SH1O2S3', 'SH1O3S3', 'GS1'])
 
-    time_index = 22
+    sat = 'SH1O1S1'
+    des = 'SH1O1S3'
+    next_hop = 'SH1O1S2'
+    time_index = 2
+    # set the next hop at a certain time. Sat and NextHopSat are neighbors.
+    sn.set_next_hop(sat, des, next_hop, time_index)
+
+    time_index = 3
     # routing table of a node at a certain time. The output file will be written at the working directory.
     sn.check_routing_table(sat, time_index)
 
-    node1 = 'SH1SAT1'
-    node2 = 'SH1SAT2'
+    node1 = 'SH1O1S1'
+    node2 = 'SH1O1S2'
     time_index = 4
     # ping msg of two nodes at a certain time. The output file will be written at the working directory.
     sn.set_ping(node1, node2, time_index)
     # perf msg of two nodes at a certain time. The output file will be written at the working directory.
     sn.set_iperf(node1, node2, time_index)
 
-    # run OSPF daemon on all nodes
-    # sn.run_routing_daemon()
-    
-    # run OSPF daemon on selected nodes
-    sn.run_routing_daemon(node_lst=[
-      'GS1', 'SH1SAT1', 'SH1SAT2', 'GS2'])
-
-    sn.check_routing_table('GS2', 4)
+    sn.check_routing_table('GS1', 10)
 
     ratio = 0.3
-    time_index = 5
+    time_index = 15
     # random damage of a given ratio at a certain time
     sn.set_damage(ratio, time_index)
 
-    sn.check_routing_table('GS1', 10)
+    sn.check_routing_table('GS1', 20)
 
-    time_index = 15
+    time_index = 25
     # recover the damages at a certain time
     sn.set_recovery(time_index)
 
-    sn.check_routing_table('GS1', 25)
+    sn.check_routing_table('GS1', 30)
 
     sn.start_emulation()
 
