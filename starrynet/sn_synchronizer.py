@@ -283,18 +283,42 @@ class StarryNet():
         assert len(sat_names_shell) == len(self.shell_lst)
 
         # TODO: better partition
+        node_mid_dict = {}
+        assigned_shell_lst = []
         if len(sat_names_shell) * 2 <= len(machine_lst):
             # need intra-shell partition
-            machine_per_shell = len(machine_lst) // len(sat_names_shell)
-            raise NotImplementedError
+            sat_total = sum(len(sat_names) for sat_names in sat_names_shell)
+            sat_per_machine = sat_total // len(machine_lst)
+            remainder = sat_total % len(machine_lst)
+
+            shell_id, sat_id = 0, 0
+            sat_names = []
+            for i, remote in enumerate(machine_lst):
+                sat_nr = sat_per_machine
+                if i < remainder:
+                    sat_nr += 1
+
+                assigned_shells = []
+                for _ in range(sat_nr):
+                    sat_names.append(sat_names_shell[shell_id][sat_id])
+                    node_mid_dict[sat_names[-1]] = i
+                    sat_id += 1
+                    if(sat_id >= len(sat_names_shell[shell_id])):
+                        assigned_shells.append((self.shell_lst[shell_id]['name'], sat_names))
+                        shell_id += 1
+                        sat_id = 0
+                        sat_names = []
+                if len(sat_names) > 0:
+                    assigned_shells.append((self.shell_lst[shell_id]['name'], sat_names))
+                    sat_names = []
+                print(assigned_shells)
+                assigned_shell_lst.append(assigned_shells)
         else:
             # only divide shell
             shell_per_machine = len(self.shell_lst) // len(machine_lst)
             remainder = len(sat_names_shell) % len(machine_lst)
 
             shell_id = 0
-            node_mid_dict = {}
-            assigned_shell_lst = []
             for i, remote in enumerate(machine_lst):
                 shell_num = shell_per_machine
                 if i < remainder:
@@ -309,28 +333,29 @@ class StarryNet():
                         node_mid_dict[sat_name] = i
                 assigned_shell_lst.append(assigned_shells)
                 shell_id += shell_num
-            # TODO: better ground station assign
-            with open(os.path.join(self.local_dir, self.gs_dirname,'gsl','0.txt'))as f:
-                for line in f:
-                    line = line.strip()
-                    if len(line) == 0:
-                        continue
-                    toks = line.split('|')
-                    gs_name = toks[0]
-                    add_lst = toks[3]
-                    if len(add_lst) == 0:
-                        node_mid_dict[gs_name] = 0
-                        continue
-                    gsl = add_lst.split(' ')[0].split(',')
-                    node_mid_dict[gs_name] = node_mid_dict[gsl[0]]
-            ip_lst = [remote['IP'] for remote in machine_lst]
-            assign_obj = {
-                'shell_num': len(self.shell_lst),
-                'node_mid_dict': node_mid_dict,
-                'ip': ip_lst,
-            }
-            with open(os.path.join(self.local_dir, ASSIGN_FILENAME), 'w') as f:
-                json.dump(assign_obj, f)
+
+        # TODO: better ground station assign
+        with open(os.path.join(self.local_dir, self.gs_dirname,'gsl','0.txt'))as f:
+            for line in f:
+                line = line.strip()
+                if len(line) == 0:
+                    continue
+                toks = line.split('|')
+                gs_name = toks[0]
+                add_lst = toks[3]
+                if len(add_lst) == 0:
+                    node_mid_dict[gs_name] = 0
+                    continue
+                gsl = add_lst.split(' ')[0].split(',')
+                node_mid_dict[gs_name] = node_mid_dict[gsl[0]]
+        ip_lst = [remote['IP'] for remote in machine_lst]
+        assign_obj = {
+            'shell_num': len(self.shell_lst),
+            'node_mid_dict': node_mid_dict,
+            'ip': ip_lst,
+        }
+        with open(os.path.join(self.local_dir, ASSIGN_FILENAME), 'w') as f:
+            json.dump(assign_obj, f)
 
         remote_lst = []
         for i, remote in enumerate(machine_lst):

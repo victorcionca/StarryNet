@@ -19,7 +19,7 @@ PID_FILENAME = 'container_pid.txt'
 DAMAGE_FILENAME = 'damage_list.txt'
 
 NOT_ASSIGNED = 'NA'
-VXLAN_PORT = 4789
+VXLAN_PORT = '4789'
 # FIXME
 CLONE_NEWNET = 0x40000000
 libc = ctypes.CDLL(None)
