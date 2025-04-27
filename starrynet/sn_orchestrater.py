@@ -134,8 +134,9 @@ def _add_link_inter_machine(idx, name1, name2, remote_ip, prefix4, prefix6, dela
         ('ip', 'link', 'add', n1_n2, 'netns', name1,
          'type', 'vxlan', 'id', str(idx), 'remote', remote_ip, 'dstport', VXLAN_PORT)
     )
+    suffix4 = '.10/24' if name1 < name2 else '.40/24'
     suffix6 = '::10/48' if name1 < name2 else '::40/48'
-    _init_if(name1, n1_n2, prefix4+'.10/24', prefix6 + suffix6, delay, bw, loss)
+    _init_if(name1, n1_n2, prefix4+suffix4, prefix6 + suffix6, delay, bw, loss)
 
 def sn_init_nodes(dir, shell_num, node_mid_dict):
     def _load_netns(pid, name):

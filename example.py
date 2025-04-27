@@ -82,13 +82,13 @@ if __name__ == "__main__":
     # random damage of a given ratio at a certain time
     sn.set_damage(ratio, time_index)
 
-    sn.check_routing_table('GS1', 20)
+    sn.check_routing_table('GS1', 30)
 
-    time_index = 25
+    time_index = 35
     # recover the damages at a certain time
     sn.set_recovery(time_index)
 
-    sn.check_routing_table('GS1', 30)
+    sn.check_routing_table('GS1', 45)
 
     sn.start_emulation()
 
