@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # sn.run_routing_daemon()
     
     # run OSPF daemon on selected nodes
-    sn.run_routing_deamon(node_lst=[
+    sn.run_routing_daemon(node_lst=[
       'GS1', 'SH1O25S14', 'SH1O26S14', 'SH1O27S14', 'SH1O27S13', 'GS2'])
 
     sn.check_routing_table('GS2', 4)

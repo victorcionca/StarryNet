@@ -4,6 +4,7 @@ import subprocess
 import sys
 import glob
 import ctypes
+import time
 # from line_profiler import LineProfiler
 
 
@@ -129,28 +130,31 @@ def _del_link(idx, name1, name2):
     fd = os.open('/run/netns/' + name1, os.O_RDONLY)
     libc.setns(fd, CLONE_NEWNET)
     os.close(fd)
-    subprocess.check_call(('ip', 'link', 'del', n1_n2))
+    # subprocess.check_call(('ip', 'link', 'del', n1_n2))
+    pynetlink.del_link(n1_n2)
 
 def _init_if(name, if_name, addr, delay, bw, loss):
     fd = os.open('/run/netns/' + name, os.O_RDONLY)
     libc.setns(fd, CLONE_NEWNET)
     os.close(fd)
-    subprocess.check_call(('ip', 'addr', 'add', addr, 'dev', if_name))
-    subprocess.check_call(
-        ('tc', 'qdisc', 'add', 'dev', if_name, 'root',
-         'netem', 'delay', delay+'ms', 'loss', loss+'%', 'rate', bw+'Gbit')
-    )
-    subprocess.check_call(('ip', 'link', 'set', if_name, 'up'))
+    # subprocess.check_call(('ip', 'addr', 'add', addr, 'dev', if_name))
+    # subprocess.check_call(
+    #     ('tc', 'qdisc', 'add', 'dev', if_name, 'root',
+    #      'netem', 'delay', delay+'ms', 'loss', loss+'%', 'rate', bw+'Gbit')
+    # )
+    # subprocess.check_call(('ip', 'link', 'set', if_name, 'up'))
+    pynetlink.init_if(if_name, addr, delay, bw, loss)
 
 def _update_if(name, if_name, delay, bw, loss):
     fd = os.open('/run/netns/' + name, os.O_RDONLY)
     libc.setns(fd, CLONE_NEWNET)
     os.close(fd)
     update_loss = '100' if name in damage_set else loss
-    subprocess.check_call(
-        ('tc', 'qdisc', 'change', 'dev', if_name, 'root',
-        'netem', 'delay', delay + 'ms', 'rate', bw + 'Gbit', 'loss', update_loss + '%')
-    )
+    # subprocess.check_call(
+    #     ('tc', 'qdisc', 'change', 'dev', if_name, 'root',
+    #     'netem', 'delay', delay + 'ms', 'rate', bw + 'Gbit', 'loss', update_loss + '%')
+    # )
+    pynetlink.update_if(if_name, delay, bw, update_loss)
 
 def _update_link_intra_machine(idx, name1, name2, delay, bw, loss):
     n1_n2 = f"{name2}"
@@ -328,6 +332,7 @@ def sn_update_network(
         return
     del_cnt, update_cnt, add_cnt = 0, 0, 0
     del_lst, update_lst, add_lst = _parse_gsls(f'{gs_dir}/{ts}.txt')
+    del_st = time.time()
     for idx, gid, shell_id, oid, sid, delay in del_lst:
         orbit_num, shell_name, sat_mid = sat_mid_lst[shell_id]
         if gs_mid[gid] == machine_id:
@@ -336,6 +341,9 @@ def sn_update_network(
         elif sat_mid[sid] == machine_id:
             del_cnt += 1
             _del_link(idx, _sat_name(shell_id, isl_oid, isl_sid), _gs_name(gid))
+    del_ed = time.time()
+    del_time = del_ed - del_st
+    update_st = time.time()
     for idx, gid, shell_id, oid, sid, delay in update_lst:
         orbit_num, shell_name, sat_mid = sat_mid_lst[shell_id]
         if gs_mid[gid] == machine_id:
@@ -359,6 +367,9 @@ def sn_update_network(
                 _sat_name(shell_id, oid, sid), _gs_name(gid),
                 delay, gsl_bw, gsl_loss
             )
+    update_ed = time.time()
+    update_time = update_ed - update_st
+    add_st = time.time()
     for idx, gid, shell_id, oid, sid, delay in add_lst:
         orbit_num, shell_name, sat_mid = sat_mid_lst[shell_id]
         if gs_mid[gid] == machine_id:
@@ -382,8 +393,20 @@ def sn_update_network(
                 _sat_name(shell_id, oid, sid), _gs_name(gid), ip_lst[gs_mid[gid]],
                 f'9.{idx >> 8}.{idx & 0xFF}', delay, gsl_bw, gsl_loss
             )
+    add_ed = time.time()
+    add_time = add_ed - add_st
     print(f"[{machine_id}] GSL:",
           f"{del_cnt} deleted, {update_cnt} updated, {add_cnt} added.")
+    print(f"[{machine_id}] GSL time:",
+          f"{del_time} s for deleted, {update_time} s for updated, {add_time} s for added.")
+    
+    # GSL_TIMING_DIR = 'gsl_timing_all_change'
+    # timing_dir = os.path.join(dir, GSL_TIMING_DIR)
+    # os.makedirs(timing_dir, exist_ok=True)
+    # timing_file = os.path.join(timing_dir, f"gsl_timing_{ts}.txt")
+    # with open(timing_file, 'w') as f:
+    #     f.write(f"{del_time:.6f} {update_time:.6f} {add_time:.6f}\n")
+
 
 def sn_container_check_call(pid, cmd, *args, **kwargs):
     subprocess.check_call(
@@ -626,6 +649,17 @@ if __name__ == '__main__':
             shell=True
         )
         import pyctr
+
+    try:
+        import pynetlink
+    except ModuleNotFoundError:
+        subprocess.check_call(
+            "cd " + workdir + " && "
+            "gcc $(python3-config --cflags --ldflags) "
+            "-shared -fPIC -O2 pynetlink.c -o pynetlink.so",
+            shell=True
+        )
+        import pynetlink
     
     damage_set = set()
     damage_file = workdir + '/' + DAMAGE_FILENAME

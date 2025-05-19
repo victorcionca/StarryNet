@@ -95,6 +95,10 @@ class RemoteMachine:
             self.dir + '/pyctr.c'
         )
         self.sftp.put(
+            os.path.join(os.path.dirname(__file__), 'pynetlink.c'),
+            self.dir + '/pynetlink.c'
+        )
+        self.sftp.put(
             os.path.join(self.local_dir, 'bird.conf'),
             self.dir + '/bird.conf'
         )
