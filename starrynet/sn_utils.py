@@ -56,6 +56,8 @@ def sn_load_file(path, GS_lat_long):
     data['phase_shift'] = table["Phase shift"]
     data['orbit'] = table["# of orbit"]
     data['sat'] = table["# of satellites"]
+    data['orbit_start_long'] = table["start longitude"]
+    data['orbit_spacing'] = table["orbit spacing"]
     data['link'] = table["Satellite link"]
     data['duration'] = table["Duration (s)"]
     data['ip'] = table["IP version"]
@@ -85,6 +87,8 @@ def sn_load_file(path, GS_lat_long):
     parser.add_argument('--inclination', type=int, default=data['inclination'])
     parser.add_argument('--orbit_number', type=int, default=data['orbit'])
     parser.add_argument('--sat_number', type=int, default=data['sat'])
+    parser.add_argument('--orbit_start_long', type=int, default=data['orbit_start_long'])
+    parser.add_argument('--orbit_spacing', type=int, default=data['orbit_spacing'])
     parser.add_argument('--fac_num', type=int, default=len(GS_lat_long))
     parser.add_argument('--link_style', type=str, default=data['link'])
     parser.add_argument('--IP_version', type=str, default=data['ip'])

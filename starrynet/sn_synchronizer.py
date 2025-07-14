@@ -22,6 +22,8 @@ class StarryNet():
         self.inclination = sn_args.inclination
         self.orbit_number = sn_args.orbit_number
         self.sat_number = sn_args.sat_number
+        self.orbit_start_long = sn_args.orbit_start_long
+        self.orbit_spacing = sn_args.orbit_spacing
         self.fac_num = sn_args.fac_num
         self.constellation_size = self.orbit_number * self.sat_number
         self.node_size = self.orbit_number * self.sat_number + sn_args.fac_num
