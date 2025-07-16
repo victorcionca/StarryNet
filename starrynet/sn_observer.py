@@ -17,7 +17,8 @@ _ = inf = 999999  # inf
 class Observer():
 
     def __init__(self, file_path, configuration_file_path, inclination,
-                 satellite_altitude, orbit_number, sat_number, duration,
+                 satellite_altitude, orbit_number, sat_number,
+                 orbit_start_long, orbit_spacing, duration, resolution,
                  antenna_number, GS_lat_long, antenna_inclination,
                  intra_routing, hello_interval, AS):
         self.file_path = file_path
@@ -26,7 +27,10 @@ class Observer():
         self.satellite_altitude = satellite_altitude
         self.orbit_number = orbit_number
         self.sat_number = sat_number
+        self.orbit_start_long = orbit_start_long
+        self.orbit_spacing = orbit_spacing
         self.duration = duration
+        self.resolution = resolution
         self.antenna_number = antenna_number
         self.GS_lat_long = GS_lat_long
         self.antenna_inclination = antenna_inclination
@@ -254,7 +258,10 @@ class Observer():
         lla_per_sec = [[] for i in range(duration)]  # LLA result
 
         for i in range(num_of_orbit):  # range(num_of_orbit)
-            raan = i / num_of_orbit * 2 * np.pi
+            if self.orbit_spacing > 0:
+                raan = self.orbit_start_long + i * (self.orbit_spacing * np.pi / 180)
+            else:
+                raan = i / num_of_orbit * 2 * np.pi
             for j in range(sat_per_orbit):  # range(sat_per_orbit)
                 mean_anomaly = (j * 360 / sat_per_orbit + i * 360 * F /
                                 num_of_sat) % 360 * 2 * np.pi / 360
