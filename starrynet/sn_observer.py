@@ -194,21 +194,21 @@ class Observer():
                 f.write("time " + str(i + 2) + ":\n")  # time started from 1
                 f.write('duration ' + str(Duration[cnt]) + ":\n")
                 cnt += 1
-                f.write("add:\n")
-                for j in range(no_fac):
-                    prelines = pre_lines[no_geo + no_leo + j]
-                    nowlines = now_lines[no_geo + no_leo + j]
-                    for k in range(no_geo + no_leo + no_fac):
-                        if prelines[k] == 0 and nowlines[k] == 1:
-                            f.write(
-                                str(k + 1) + "-" + str(no_leo + j + 1) +
-                                "\n")  # index
                 f.write("del:\n")
                 for j in range(no_fac):
                     prelines = pre_lines[no_geo + no_leo + j]
                     nowlines = now_lines[no_geo + no_leo + j]
                     for k in range(no_geo + no_leo + no_fac):
                         if prelines[k] == 1 and nowlines[k] == 0:
+                            f.write(
+                                str(k + 1) + "-" + str(no_leo + j + 1) +
+                                "\n")  # index
+                f.write("add:\n")
+                for j in range(no_fac):
+                    prelines = pre_lines[no_geo + no_leo + j]
+                    nowlines = now_lines[no_geo + no_leo + j]
+                    for k in range(no_geo + no_leo + no_fac):
+                        if prelines[k] == 0 and nowlines[k] == 1:
                             f.write(
                                 str(k + 1) + "-" + str(no_leo + j + 1) +
                                 "\n")  # index

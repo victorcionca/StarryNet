@@ -510,7 +510,23 @@ class sn_Emulation_Start_Thread(threading.Thread):
                 line = fi.readline()
                 line = fi.readline()
                 words = line.split()
-                while words[0] != 'del:':  # addlink
+                while words[0] != 'add:':  # dellink
+                    word = words[0].split('-')
+                    s = int(word[0])
+                    f = int(word[1])
+                    if s > f:
+                        tmp = s
+                        s = f
+                        f = tmp
+                    print("del link " + str(s) + "-" + str(f) + "\n")
+                    sn_del_link(s, f, self.container_id_list, self.remote_ssh)
+                    line = fi.readline()
+                    words = line.split()
+                line = fi.readline()
+                words = line.split()
+                if len(words) == 0:
+                    return
+                while words[0] != 'time':  # add link
                     word = words[0].split('-')
                     s = int(word[0])
                     f = int(word[1])
@@ -527,22 +543,6 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                          self.sat_ground_bw,
                                          self.sat_ground_loss, s, f,
                                          self.remote_ssh)
-                    line = fi.readline()
-                    words = line.split()
-                line = fi.readline()
-                words = line.split()
-                if len(words) == 0:
-                    return
-                while words[0] != 'time':  # delete link
-                    word = words[0].split('-')
-                    s = int(word[0])
-                    f = int(word[1])
-                    if s > f:
-                        tmp = s
-                        s = f
-                        f = tmp
-                    print("del link " + str(s) + "-" + str(f) + "\n")
-                    sn_del_link(s, f, self.container_id_list, self.remote_ssh)
                     line = fi.readline()
                     words = line.split()
                     if len(words) == 0:
