@@ -284,7 +284,7 @@ class Observer():
                 sat = EarthSatellite.from_satrec(satrec, ts)
                 cur = datetime(2022, 1, 1, 1, 0, 0)
                 t_ts = ts.utc(*cur.timetuple()[:5],
-                              range(duration))  # [:4]:minute，[:5]:second
+                              range(0,duration*self.resolution,self.resolution))  # [:4]:minute，[:5]:second
                 geocentric = sat.at(t_ts)
                 subpoint = wgs84.subpoint(geocentric)
                 # list: [subpoint.latitude.degrees] [subpoint.longitude.degrees] [subpoint.elevation.km]

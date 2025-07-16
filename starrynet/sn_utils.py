@@ -60,6 +60,7 @@ def sn_load_file(path, GS_lat_long):
     data['orbit_spacing'] = table["orbit spacing"]
     data['link'] = table["Satellite link"]
     data['duration'] = table["Duration (s)"]
+    data['resolution'] = table["Resolution (s)"]
     data['ip'] = table["IP version"]
     data['intra_as_routing'] = table["Intra-AS routing"]
     data['inter_as_routing'] = table["Inter-AS routing"]
@@ -98,6 +99,7 @@ def sn_load_file(path, GS_lat_long):
                         type=int,
                         default=data['update_time'])
     parser.add_argument('--duration', type=int, default=data['duration'])
+    parser.add_argument('--resolution', type=int, default=data['resolution'])
     parser.add_argument('--inter_routing',
                         type=str,
                         default=data['inter_as_routing'])
@@ -362,7 +364,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                  configuration_file_path, update_interval, constellation_size,
                  ping_src, ping_des, ping_time, sr_src, sr_des, sr_target,
                  sr_time, damage_ratio, damage_time, damage_list,
-                 recovery_time, route_src, route_time, duration,
+                 recovery_time, route_src, route_time, duration, resolution,
                  utility_checking_time, perf_src, perf_des, perf_time):
         threading.Thread.__init__(self)
         self.remote_ssh = remote_ssh
@@ -392,6 +394,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
         self.route_src = route_src
         self.route_time = route_time
         self.duration = duration
+        self.resolution = resolution
         self.utility_checking_time = utility_checking_time
         if self.container_id_list == []:
             self.container_id_list = sn_get_container_info(self.remote_ssh)
@@ -409,7 +412,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                 print('Emulation in No.' + str(timeptr) + ' second.')
                 # the time when the new change occurrs
                 current_time = str(int(words[1][:-1]))
-                while int(current_time) > timeptr:
+                while int(current_time)*self.resolution > timeptr:
                     start_time = time.time()
                     if timeptr in self.utility_checking_time:
                         sn_check_utility(
@@ -419,7 +422,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                     if timeptr % self.update_interval == 0:
                         # updating link delays after link changes
                         sn_update_delay(self.file_path,
-                                        self.configuration_file_path, timeptr,
+                                        self.configuration_file_path, int(timeptr/self.resolution)+1,
                                         self.constellation_size,
                                         self.remote_ssh, self.remote_ftp)
                     if timeptr in self.damage_time:
@@ -498,7 +501,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                         end_time -
                         start_time) if (end_time - start_time) < 1 else 1
                     sleep(1 - passed_time)
-                    if timeptr >= self.duration:
+                    if timeptr >= self.duration*self.resolution:
                         return
                     print('Emulation in No.' + str(timeptr) + ' second.')
                 print("A change in time " + current_time + ':')
@@ -551,7 +554,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                 if timeptr % self.update_interval == 0:
                     # updating link delays after link changes
                     sn_update_delay(self.file_path,
-                                    self.configuration_file_path, timeptr,
+                                    self.configuration_file_path, int(timeptr/self.resolution)+1,
                                     self.constellation_size, self.remote_ssh,
                                     self.remote_ftp)
                 if timeptr in self.damage_time:
@@ -620,7 +623,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                  self.configuration_file_path,
                                  self.container_id_list, self.remote_ssh)
                 timeptr += 1  # current emulating time
-                if timeptr >= self.duration:
+                if timeptr >= self.duration*self.resolution:
                     return
         fi.close()
         for ping_thread in ping_threads:

@@ -32,6 +32,7 @@ class StarryNet():
         self.link_policy = sn_args.link_policy
         self.update_interval = sn_args.update_interval
         self.duration = sn_args.duration
+        self.resolution = sn_args.resolution
         self.inter_routing = sn_args.inter_routing
         self.intra_routing = sn_args.intra_routing
         self.cycle = sn_args.cycle
@@ -57,7 +58,9 @@ class StarryNet():
         self.observer = Observer(self.file_path, self.configuration_file_path,
                                  self.inclination, self.satellite_altitude,
                                  self.orbit_number, self.sat_number,
-                                 self.duration, self.antenna_number,
+                                 self.orbit_start_long, self.orbit_spacing,
+                                 self.duration, self.resolution,
+                                 self.antenna_number,
                                  GS_lat_long, self.antenna_inclination,
                                  self.intra_routing, self.hello_interval,
                                  self.AS)
@@ -229,7 +232,8 @@ class StarryNet():
             self.ping_time, self.sr_src, self.sr_des, self.sr_target,
             self.sr_time, self.damage_ratio, self.damage_time,
             self.damage_list, self.recovery_time, self.route_src,
-            self.route_time, self.duration, self.utility_checking_time,
+            self.route_time, self.duration, self.resolution,
+            self.utility_checking_time,
             self.perf_src, self.perf_des, self.perf_time)
         sn_thread.start()
         sn_thread.join()
