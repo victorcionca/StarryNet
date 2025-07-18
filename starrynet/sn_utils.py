@@ -365,7 +365,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                  ping_src, ping_des, ping_time, sr_src, sr_des, sr_target,
                  sr_time, damage_ratio, damage_time, damage_list,
                  recovery_time, route_src, route_time, duration, resolution,
-                 utility_checking_time, perf_src, perf_des, perf_time):
+                 utility_checking_time, perf_src, perf_des, perf_time, perf_options):
         threading.Thread.__init__(self)
         self.remote_ssh = remote_ssh
         self.remote_ftp = remote_ftp
@@ -382,6 +382,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
         self.ping_time = ping_time
         self.perf_src = perf_src
         self.perf_des = perf_des
+        self.perf_options = perf_options
         self.perf_time = perf_time
         self.sr_src = sr_src
         self.sr_des = sr_des
@@ -406,6 +407,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
         topo_change_file_path = self.configuration_file_path + "/" + self.file_path + '/Topo_leo_change.txt'
         fi = open(topo_change_file_path, 'r')
         line = fi.readline()
+        print(self.perf_time)
         while line:  # starting reading change information and emulating
             words = line.split()
             if words[0] == 'time':
@@ -472,10 +474,12 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                 if val == timeptr
                             ]
                             for index_num in index:
+                                print(f"Preparing iperf at {timeptr} {self.perf_src[index_num]} -> {self.perf_des[index_num]} with {self.perf_options[index_num]}")
                                 perf_thread = threading.Thread(
                                     target=sn_perf,
                                     args=(self.perf_src[index_num],
                                           self.perf_des[index_num],
+                                          self.perf_options[index_num],
                                           self.perf_time[index_num],
                                           self.constellation_size,
                                           self.container_id_list,
@@ -744,7 +748,9 @@ def sn_ping(src, des, time_index, constellation_size, container_id_list,
     f.close()
 
 
-def sn_perf(src, des, time_index, constellation_size, container_id_list,
+def sn_perf(src, des,
+            options,
+            time_index, constellation_size, container_id_list,
             file_path, configuration_file_path, remote_ssh):
     if des <= constellation_size:
         ifconfig_output = sn_remote_cmd(
@@ -760,17 +766,23 @@ def sn_perf(src, des, time_index, constellation_size, container_id_list,
             " ifconfig B" + str(des) +
             "-default |awk -F '[ :]+' 'NR==2{print $4}'")
 
-    sn_remote_cmd(
+    bandwidth = options['bandwidth']
+    perf_result = sn_remote_cmd(
         remote_ssh,
         "docker exec -id " + str(container_id_list[des - 1]) + " iperf3 -s ")
-    print("iperf server success")
+    print("iperf server: ", perf_result)
     perf_result = sn_remote_cmd(
         remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
-        " iperf3 -c " + str(des_IP[0][:-1]) + " -t 5 ")
-    print("iperf client success")
+        " iperf3 -c " + str(des_IP[0][:-1]) + " -t 15 " +  
+        " -b " + str(bandwidth) + "M")
+    print("iperf client success", "docker exec -i " + str(container_id_list[src - 1]) +
+        " iperf3 -c " + str(des_IP[0][:-1]) + " -t 15 " +  
+        " -b " + str(bandwidth) + "M" )
     f = open(
         configuration_file_path + "/" + file_path + "/perf-" + str(src) + "-" +
-        str(des) + "_" + str(time_index) + ".txt", "w")
+        str(des) + "_" +
+        str(bandwidth) + "M" + "_" +
+        str(time_index) + ".txt", "w")
     f.writelines(perf_result)
     f.close()
 
